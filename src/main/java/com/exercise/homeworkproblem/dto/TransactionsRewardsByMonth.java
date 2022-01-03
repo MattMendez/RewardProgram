@@ -1,17 +1,18 @@
 package com.exercise.homeworkproblem.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashMap;
 import java.util.List;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class newTransactionsRequest {
+public class TransactionsRewardsByMonth {
 
-    @JsonProperty("transactions")
-    List<NewTransaction> newTransactionList;
+    private HashMap<Integer,Integer> rewardWithMonthMap;
+
 }
