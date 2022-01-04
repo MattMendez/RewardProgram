@@ -13,7 +13,5 @@ public class UpdateTransaction {
 
     private Integer moneySpent;
 
-    private Integer rewardPoints;
-
     private LocalDate date;
 }

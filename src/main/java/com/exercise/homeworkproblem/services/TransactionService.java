@@ -1,8 +1,11 @@
 package com.exercise.homeworkproblem.services;
 
+import com.exercise.homeworkproblem.exceptions.NewTransactionsEmptyException;
+import com.exercise.homeworkproblem.exceptions.TransactionsNotFoundException;
 import com.exercise.homeworkproblem.dto.NewTransaction;
 import com.exercise.homeworkproblem.dto.TransactionsRewardsByMonth;
 import com.exercise.homeworkproblem.dto.UpdateTransaction;
+import com.exercise.homeworkproblem.exceptions.TransactionsNullFoundException;
 import com.exercise.homeworkproblem.models.Transaction;
 import com.exercise.homeworkproblem.repository.TransactionRepository;
 import org.slf4j.Logger;
@@ -12,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -25,10 +29,10 @@ public class TransactionService {
     @Autowired
     private TransactionRepository transactionRepository;
 
-    public ResponseEntity addNewTransactions(Integer userId, List<NewTransaction> newTransactions) {
+    public ResponseEntity<List<Transaction>> addNewTransactions(Integer userId, List<NewTransaction> newTransactions) {
         try{
             if(newTransactions.isEmpty()){
-                return ResponseEntity.ok("Empty list of new transactions was sent");
+                throw new NewTransactionsEmptyException();
             }else {
                 List<Transaction> transactionList = newTransactions.stream()
                         .map(newTransaction -> Transaction.builder()
@@ -38,15 +42,14 @@ public class TransactionService {
                                 .rewardPoints(calculateRewards(newTransaction.getPrice()))
                                 .build())
                         .collect(Collectors.toList());
+                List<Transaction> transactionListSaved = transactionRepository.saveAll(transactionList);
+                log.info("New transactions were stored: " + transactionList);
 
-                transactionRepository.saveAll(transactionList);
-                log.info("New transactions were stored: " + transactionList.toString());
-
-                return ResponseEntity.ok("All transactions stored");
+                return ResponseEntity.ok(transactionListSaved);
             }
         }catch (NullPointerException nullPointerException){
             log.error("A null transaction or null price or null date was send in the request");
-            return ResponseEntity.badRequest().body("Null transaction or price or date");
+            throw new TransactionsNullFoundException();
         }
     }
 
@@ -64,7 +67,7 @@ public class TransactionService {
         return ResponseEntity.ok(transactionRepository.findAllByUserIdAndDateBetween(userId, LocalDate.now().minusDays(dateRange), LocalDate.now()));
     }
 
-    public ResponseEntity findTransactionsRewardsByMonth(Integer userId, Integer dateRange) {
+    public ResponseEntity<HashMap> findTransactionsRewardsByMonth(Integer userId, Integer dateRange) {
         List<Transaction> transactionList = transactionRepository.findAllByUserIdAndDateBetween(userId, LocalDate.now().minusDays(dateRange), LocalDate.now());
         if (!transactionList.isEmpty()){
             TransactionsRewardsByMonth transactionsRewardsByMonth = new TransactionsRewardsByMonth(new HashMap<Integer,Integer>());
@@ -84,36 +87,33 @@ public class TransactionService {
             return ResponseEntity.ok(transactionsRewardsByMonth.getRewardWithMonthMap());
 
         }else
-            return ResponseEntity.ok("There are not transactions for that userId in the date range provided");
+            log.info("Method: findTransactionsRewardsByMonth - userId= "+ userId +" and dateRange0= " + dateRange +" dont return any transaction");
+            throw new TransactionsNotFoundException();
     }
 
-    public ResponseEntity updateTransactions(List<UpdateTransaction> updateTransactionList) {
+    public ResponseEntity<List<Transaction>> updateTransactions(List<UpdateTransaction> updateTransactionList) {
         try{
-            String updatedRows = "Rows updated: ";
+            List<Transaction> updatedTrasanctions = new ArrayList<Transaction>();
 
             updateTransactionList.forEach(transaction -> {
                 Optional<Transaction> optionalTransaction = transactionRepository.findById(transaction.getTransactionId());
                 optionalTransaction.ifPresent(oldTransaction -> {
                     Transaction updatedTransaction = Transaction.builder()
                             .transactionId(oldTransaction.getTransactionId())
-                            .date(oldTransaction.getDate())
-                            .moneySpent(oldTransaction.getMoneySpent())
-                            .userId(oldTransaction.getUserId())
-                            .rewardPoints(calculateRewards(oldTransaction.getMoneySpent()))
+                            .date(transaction.getDate())
+                            .moneySpent(transaction.getMoneySpent())
+                            .userId(transaction.getUserId())
+                            .rewardPoints(calculateRewards(transaction.getMoneySpent()))
                             .build();
-
                     transactionRepository.save(updatedTransaction);
-
+                    updatedTrasanctions.add(updatedTransaction);
                 });
-                //Todo: fix message
-                updatedRows.concat(transaction.getTransactionId().toString() + ", ");
             });
-
-            return  ResponseEntity.ok(updatedRows);
+            return  ResponseEntity.ok(updatedTrasanctions);
 
         }catch (NullPointerException nullPointerException){
-        log.error("A null transaction or null price or null date was send in the request");
-        return ResponseEntity.badRequest().body("Null transaction or price or date");
+            log.error("A null transaction or null price or null date was send in the request");
+            throw new TransactionsNullFoundException();
         }
     }
 }
