@@ -3,7 +3,6 @@ package com.exercise.homeworkproblem.services;
 import com.exercise.homeworkproblem.exceptions.NewTransactionsEmptyException;
 import com.exercise.homeworkproblem.exceptions.TransactionsNotFoundException;
 import com.exercise.homeworkproblem.dto.NewTransaction;
-import com.exercise.homeworkproblem.dto.TransactionsRewardsByMonth;
 import com.exercise.homeworkproblem.dto.UpdateTransaction;
 import com.exercise.homeworkproblem.exceptions.TransactionsNullFoundException;
 import com.exercise.homeworkproblem.models.Transaction;
@@ -70,21 +69,21 @@ public class TransactionService {
     public ResponseEntity<HashMap> findTransactionsRewardsByMonth(Integer userId, Integer dateRange) {
         List<Transaction> transactionList = transactionRepository.findAllByUserIdAndDateBetween(userId, LocalDate.now().minusDays(dateRange), LocalDate.now());
         if (!transactionList.isEmpty()){
-            TransactionsRewardsByMonth transactionsRewardsByMonth = new TransactionsRewardsByMonth(new HashMap<Integer,Integer>());
 
+            HashMap<Integer,Integer> transactionsRewardsByMonth = new HashMap<Integer,Integer>();
             transactionList.forEach(transaction -> {
-                if(transactionsRewardsByMonth.getRewardWithMonthMap().containsKey(transaction.getDate().getMonthValue())){
+                if(transactionsRewardsByMonth.containsKey(transaction.getDate().getMonthValue())){
 
-                    transactionsRewardsByMonth.getRewardWithMonthMap()
+                    transactionsRewardsByMonth
                             .put(
                                     transaction.getDate().getMonthValue()
-                                    ,transactionsRewardsByMonth.getRewardWithMonthMap().get(transaction.getDate().getMonthValue()) + transaction.getRewardPoints()
+                                    ,transactionsRewardsByMonth.get(transaction.getDate().getMonthValue()) + transaction.getRewardPoints()
                             );
                 }else{
-                    transactionsRewardsByMonth.getRewardWithMonthMap().put(transaction.getDate().getMonthValue(), transaction.getRewardPoints());
+                    transactionsRewardsByMonth.put(transaction.getDate().getMonthValue(), transaction.getRewardPoints());
                 }
             });
-            return ResponseEntity.ok(transactionsRewardsByMonth.getRewardWithMonthMap());
+            return ResponseEntity.ok(transactionsRewardsByMonth);
 
         }else
             log.info("Method: findTransactionsRewardsByMonth - userId= "+ userId +" and dateRange0= " + dateRange +" dont return any transaction");
@@ -93,7 +92,7 @@ public class TransactionService {
 
     public ResponseEntity<List<Transaction>> updateTransactions(List<UpdateTransaction> updateTransactionList) {
         try{
-            List<Transaction> updatedTrasanctions = new ArrayList<Transaction>();
+            List<Transaction> updatedTransactions = new ArrayList<Transaction>();
 
             updateTransactionList.forEach(transaction -> {
                 Optional<Transaction> optionalTransaction = transactionRepository.findById(transaction.getTransactionId());
@@ -106,10 +105,10 @@ public class TransactionService {
                             .rewardPoints(calculateRewards(transaction.getMoneySpent()))
                             .build();
                     transactionRepository.save(updatedTransaction);
-                    updatedTrasanctions.add(updatedTransaction);
+                    updatedTransactions.add(updatedTransaction);
                 });
             });
-            return  ResponseEntity.ok(updatedTrasanctions);
+            return  ResponseEntity.ok(updatedTransactions);
 
         }catch (NullPointerException nullPointerException){
             log.error("A null transaction or null price or null date was send in the request");

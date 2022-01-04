@@ -35,7 +35,7 @@ public class TransactionsController {
     private TransactionService transactionService;
 
     @GetMapping(value = "/rewards-by-month/")
-    @Operation(summary="Find reward points group by month", description ="Service to find  reward points in certain date range group by month")
+    @Operation(summary="Find reward points group by month", description ="Service to find  reward points in certain day range group by month")
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
@@ -62,8 +62,8 @@ public class TransactionsController {
                     )
             ),
     })
-    public ResponseEntity findTransactionsRewardPoints(@RequestParam Integer userId, @RequestParam Integer dateRange){
-        return transactionService.findTransactionsRewardsByMonth(userId,dateRange);
+    public ResponseEntity findTransactionsRewardPoints(@RequestParam Integer userId, @RequestParam Integer dayRange){
+        return transactionService.findTransactionsRewardsByMonth(userId,dayRange);
     }
 
     @PostMapping(value = "/new-transactions/")
@@ -105,7 +105,7 @@ public class TransactionsController {
                             examples = @ExampleObject(
                                     name = "No transactions found",
                                     value =  "{\n" +
-                                            "  \"message\": \"A null transaction or null price or null date was send in the request\"\n" +
+                                            "  \"message\": \"A null transaction or null price or null day range was send in the request\"\n" +
                                             "}")
                     )
             ),
@@ -115,7 +115,7 @@ public class TransactionsController {
     }
 
     @GetMapping(value = "/")
-    @Operation(summary="Find transactions by userid and date range", description ="Service to find transactions in certain date range group by month")
+    @Operation(summary="Find transactions by userid and day range", description ="Service to find transactions in certain day range group by month")
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
@@ -151,8 +151,8 @@ public class TransactionsController {
                     )
             ),
     })
-    public ResponseEntity findTransactions(@RequestParam Integer userId, @RequestParam Integer dateRange){
-        return transactionService.findTransactions(userId,dateRange);
+    public ResponseEntity findTransactions(@RequestParam Integer userId, @RequestParam Integer dayRange){
+        return transactionService.findTransactions(userId,dayRange);
     }
 
     @PutMapping(value = "/update-transactions")
@@ -203,7 +203,7 @@ public class TransactionsController {
                             examples = @ExampleObject(
                                     name = "Null value found",
                                     value =  "{\n" +
-                                            "  \"message\": \"A null transaction or null price or null date was send in the request\"\n" +
+                                            "  \"message\": \"A null transaction or null price or null day was send in the request\"\n" +
                                             "}")
                     )
             ),
@@ -229,7 +229,7 @@ public class TransactionsController {
 
     @ExceptionHandler(TransactionsNullFoundException.class)
     public ResponseEntity<Map> TransactionsNullFoundExceptionHandler(TransactionsNullFoundException e) {
-        return new ResponseEntity<Map>(Map.of("message","A null transaction or null price or null date was send in the request"), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<Map>(Map.of("message","A null transaction or null price or null day range was send in the request"), HttpStatus.BAD_REQUEST);
     }
 
 }
