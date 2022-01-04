@@ -5,6 +5,8 @@ import com.exercise.homeworkproblem.dto.TransactionsRewardsByMonth;
 import com.exercise.homeworkproblem.dto.UpdateTransaction;
 import com.exercise.homeworkproblem.models.Transaction;
 import com.exercise.homeworkproblem.repository.TransactionRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -13,11 +15,12 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @Service
 public class TransactionService {
+
+    private final Logger log = LoggerFactory.getLogger(TransactionService.class);
 
     @Autowired
     private TransactionRepository transactionRepository;
@@ -37,12 +40,13 @@ public class TransactionService {
                         .collect(Collectors.toList());
 
                 transactionRepository.saveAll(transactionList);
+                log.info("New transactions were stored: " + transactionList.toString());
 
                 return ResponseEntity.ok("All transactions stored");
             }
         }catch (NullPointerException nullPointerException){
-            //Todo: Logger
-            return ResponseEntity.badRequest().body("Null in price or date");
+            log.error("A null transaction or null price or null date was send in the request");
+            return ResponseEntity.badRequest().body("Null transaction or price or date");
         }
     }
 
@@ -84,28 +88,32 @@ public class TransactionService {
     }
 
     public ResponseEntity updateTransactions(List<UpdateTransaction> updateTransactionList) {
+        try{
+            String updatedRows = "Rows updated: ";
 
-        String updatedRows = "Rows updated: ";
+            updateTransactionList.forEach(transaction -> {
+                Optional<Transaction> optionalTransaction = transactionRepository.findById(transaction.getTransactionId());
+                optionalTransaction.ifPresent(oldTransaction -> {
+                    Transaction updatedTransaction = Transaction.builder()
+                            .transactionId(oldTransaction.getTransactionId())
+                            .date(oldTransaction.getDate())
+                            .moneySpent(oldTransaction.getMoneySpent())
+                            .userId(oldTransaction.getUserId())
+                            .rewardPoints(calculateRewards(oldTransaction.getMoneySpent()))
+                            .build();
 
-        updateTransactionList.forEach(transaction -> {
-            Optional<Transaction> optionalTransaction = transactionRepository.findById(transaction.getTransactionId());
-            optionalTransaction.ifPresent(oldTransaction -> {
-                Transaction updatedTransaction = Transaction.builder()
-                        .transactionId(oldTransaction.getTransactionId())
-                        .date(oldTransaction.getDate())
-                        .moneySpent(oldTransaction.getMoneySpent())
-                        .userId(oldTransaction.getUserId())
-                        .rewardPoints(calculateRewards(oldTransaction.getMoneySpent()))
-                        .build();
+                    transactionRepository.save(updatedTransaction);
 
-                transactionRepository.save(updatedTransaction);
-
+                });
+                //Todo: fix message
+                updatedRows.concat(transaction.getTransactionId().toString() + ", ");
             });
-            //Todo: fix message
-            updatedRows.concat(transaction.getTransactionId().toString() + ", ");
-        });
 
-        return  ResponseEntity.ok(updatedRows);
+            return  ResponseEntity.ok(updatedRows);
+
+        }catch (NullPointerException nullPointerException){
+        log.error("A null transaction or null price or null date was send in the request");
+        return ResponseEntity.badRequest().body("Null transaction or price or date");
+        }
     }
-
 }
